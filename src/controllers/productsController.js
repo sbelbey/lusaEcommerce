@@ -1,18 +1,87 @@
 const { User, Brand, Product, Sale, Tag } = require("../database/models");
+const { Op } = require("sequelize");
+const { all } = require("../routes/products");
 
 module.exports = {
   allProducts: async (req, res) => {
     try {
-      if (
-        req.query.name ||
-        req.query.brandName ||
-        req.query.category ||
-        req.query.active ||
-        req.query.tag
-      ) {
-        this.findProduct;
+      if (req.query.search) {
+        //Catch the query string
+        const search = req.query.search;
+
+        //Look for the products by the search
+        const productsFound = await Product.findAll({
+          include: { all: true },
+          where: {
+            [Op.or]: [
+              { name: { [Op.like]: "%" + search + "%" } },
+              { category: { [Op.like]: "%" + search + "%" } },
+              { description: { [Op.like]: "%" + search + "%" } },
+            ],
+            active: true,
+          },
+        });
+
+        // Look for Bands matchs
+        const brandsFound = await Brand.findAll({
+          where: {
+            name: {
+              [Op.like]: "%" + search + "%",
+            },
+          },
+        });
+        let allBrandsIds;
+        brandsFound
+          ? (allBrandsIds = await brandsFound.map((brand) => brand.id))
+          : [];
+
+        //Find all products on brands
+        let productsByBrand = [];
+        for (let i = 0; i < allBrandsIds.length; i++) {
+          productsByBrand = [
+            ...(await Product.findAll({
+              include: { all: true },
+              where: { brand: allBrandsIds[i] },
+            })),
+            ...productsByBrand,
+          ];
+        }
+
+        const tagsFound = await Tag.findAll({
+          where: {
+            name: {
+              [Op.like]: "%" + search + "%",
+            },
+          },
+        });
+
+        let productsByTags = [];
+        for (let i = 0; i < tagsFound.length; i++) {
+          productsByTags = [
+            ...(await tagsFound[i].getProducts()),
+            ...productsByTags,
+          ];
+        }
+
+        let allProducts = [
+          ...productsByTags,
+          ...productsByBrand,
+          ...productsFound,
+        ];
+
+        const productsWoDuplicates = [...allProducts];
+        productsWoDuplicates.forEach((product, index) => {
+          const copyItem = product.id;
+          productsWoDuplicates.forEach((item, indice) => {
+            const itemCopy = item.id;
+            if (copyItem == itemCopy && index != indice) {
+              productsWoDuplicates.splice(item, 1);
+            }
+          });
+        });
+        res.status(200).json(productsWoDuplicates);
       } else {
-        let allProducts = await Product.findAll({ include: { all: true } });
+        const allProducts = await Product.findAll({ include: { all: true } });
         res.status(200).json(allProducts);
       }
     } catch (error) {
@@ -23,7 +92,7 @@ module.exports = {
   storageProduct: async (req, res) => {
     try {
       // Find or Creat a Brand incomming from the request
-      let productBrand = await Brand.findOrCreate({
+      const productBrand = await Brand.findOrCreate({
         where: { name: req.body.brandName },
         defaults: {
           created_by: req.body.userId,
@@ -34,7 +103,7 @@ module.exports = {
       // let productImages = req.files
 
       // Create a new product
-      let newProduct = await Product.create({
+      const newProduct = await Product.create({
         name: req.body.name,
         brand: productBrand[0].dataValues.id,
         category: req.body.category,
@@ -48,8 +117,8 @@ module.exports = {
       });
 
       // Tag cleaner incomming from the request
-      let productTags = req.body.tags;
-      let productTagsArray = productTags
+      const productTags = req.body.tags;
+      const productTagsArray = productTags
         .toLowerCase()
         .replace(/,/g, "")
         .split(" ");
@@ -73,8 +142,8 @@ module.exports = {
 
   getProduct: async (req, res) => {
     try {
-      let productId = Number(req.params.id);
-      let productById = await Product.findByPk(productId, {
+      const productId = Number(req.params.id);
+      const productById = await Product.findByPk(productId, {
         include: { all: true },
       });
       return res.status(200).json(productById);
@@ -86,8 +155,8 @@ module.exports = {
   updateProduct: async (req, res) => {
     try {
       //Find product
-      let productId = Number(req.params.id);
-      let productById = await Product.findByPk(productId, {
+      const productId = Number(req.params.id);
+      const productById = await Product.findByPk(productId, {
         include: { all: true },
       });
 
@@ -97,8 +166,8 @@ module.exports = {
       });
 
       // Tag cleaner incomming from the request
-      let productTags = req.body.tags;
-      let productTagsArray = productTags
+      const productTags = req.body.tags;
+      const productTagsArray = productTags
         .toLowerCase()
         .replace(/,/g, "")
         .split(" ");
@@ -115,7 +184,7 @@ module.exports = {
       });
 
       // Find or Creat a Brand incomming from the request
-      let productBrand = await Brand.findOrCreate({
+      const productBrand = await Brand.findOrCreate({
         where: { name: req.body.brandName },
         defaults: {
           created_by: req.body.userId,
@@ -123,7 +192,7 @@ module.exports = {
       });
 
       //Update the Product
-      let productModificated = await productById.update(
+      const productModificated = await productById.update(
         {
           name: req.body.name,
           brand: productBrand[0].dataValues.id,
@@ -149,8 +218,8 @@ module.exports = {
 
   eraseProduct: async (req, res) => {
     try {
-      let productId = Number(req.params.id);
-      let productById = await Product.findByPk(productId);
+      const productId = Number(req.params.id);
+      const productById = await Product.findByPk(productId);
 
       productById
         ? productById.destroy()
