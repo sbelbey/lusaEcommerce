@@ -3,7 +3,7 @@ const router = Router();
 
 const {allProducts, storageProduct, getProduct, eraseProduct, updateProduct} = require('../controllers/productsController');
 
-// Show all products
+// Show and find all products
 router.get('/', allProducts);
 
 // CREATE PRODUCT

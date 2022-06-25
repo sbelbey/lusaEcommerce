@@ -1,87 +1,21 @@
 const { User, Brand, Product, Sale, Tag } = require("../database/models");
-const { Op } = require("sequelize");
-const { all } = require("../routes/products");
+const { finder } = require("./finderController");
 
-module.exports = {
+const productController = {
   allProducts: async (req, res) => {
     try {
       if (req.query.search) {
-        //Catch the query string
-        const search = req.query.search;
-
-        //Look for the products by the search
-        const productsFound = await Product.findAll({
-          include: { all: true },
-          where: {
-            [Op.or]: [
-              { name: { [Op.like]: "%" + search + "%" } },
-              { category: { [Op.like]: "%" + search + "%" } },
-              { description: { [Op.like]: "%" + search + "%" } },
-            ],
-            active: true,
-          },
-        });
-
-        // Look for Bands matchs
-        const brandsFound = await Brand.findAll({
-          where: {
-            name: {
-              [Op.like]: "%" + search + "%",
-            },
-          },
-        });
-        let allBrandsIds;
-        brandsFound
-          ? (allBrandsIds = await brandsFound.map((brand) => brand.id))
-          : [];
-
-        //Find all products on brands
-        let productsByBrand = [];
-        for (let i = 0; i < allBrandsIds.length; i++) {
-          productsByBrand = [
-            ...(await Product.findAll({
-              include: { all: true },
-              where: { brand: allBrandsIds[i] },
-            })),
-            ...productsByBrand,
-          ];
-        }
-
-        const tagsFound = await Tag.findAll({
-          where: {
-            name: {
-              [Op.like]: "%" + search + "%",
-            },
-          },
-        });
-
-        let productsByTags = [];
-        for (let i = 0; i < tagsFound.length; i++) {
-          productsByTags = [
-            ...(await tagsFound[i].getProducts()),
-            ...productsByTags,
-          ];
-        }
-
-        let allProducts = [
-          ...productsByTags,
-          ...productsByBrand,
-          ...productsFound,
-        ];
-
-        const productsWoDuplicates = [...allProducts];
-        productsWoDuplicates.forEach((product, index) => {
-          const copyItem = product.id;
-          productsWoDuplicates.forEach((item, indice) => {
-            const itemCopy = item.id;
-            if (copyItem == itemCopy && index != indice) {
-              productsWoDuplicates.splice(item, 1);
-            }
-          });
-        });
-        res.status(200).json(productsWoDuplicates);
+        finder(req, res);
       } else {
-        const allProducts = await Product.findAll({ include: { all: true } });
+        //Create the offset
+        const pageOffset = req.query.page ? (req.query.page - 1) * 10 : 0;
+
+        // Find the products
+        const allProducts = await Product.findAll({
+          include: { all: true },
+          limit: 10,
+          offset: pageOffset,
+        });
         res.status(200).json(allProducts);
       }
     } catch (error) {
@@ -214,8 +148,6 @@ module.exports = {
     }
   },
 
-  findProduct: async (req, res) => {},
-
   eraseProduct: async (req, res) => {
     try {
       const productId = Number(req.params.id);
@@ -231,3 +163,5 @@ module.exports = {
     }
   },
 };
+
+module.exports = productController;
