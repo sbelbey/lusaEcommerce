@@ -1,8 +1,9 @@
-const { User, Brand, Product, Sale, Tag } = require("../database/models");
+const { User, Brand, Product, Sale, Tag } = require("../../database/models");
 const { Op } = require("sequelize");
+const { paging } = require("./paging");
 
 module.exports = {
-  finder: async (req, res) => {
+  productFinder: async (req, res) => {
     try {
       //Catch the query string
       const search = req.query.search;
@@ -71,61 +72,51 @@ module.exports = {
       ];
 
       // Cleaning the resulted array
-      let productsWoDuplicates = [...allProducts];
-      productsWoDuplicates.forEach((product, index) => {
+      allProducts.forEach((product, index) => {
         const copyItem = product.id;
-        productsWoDuplicates.forEach((item, indice) => {
+        allProducts.forEach((item, indice) => {
           const itemCopy = item.id;
           if (copyItem == itemCopy && index != indice) {
-            productsWoDuplicates.splice(item, 1);
+            allProducts.splice(item, 1);
           }
         });
       });
 
-      let countPages = 1;
-      let nextPage = null;
-      let prevPage = null;
-      let productToSend = productsWoDuplicates;
+      allProducts = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15]
 
-      // Paging the results
-      if (productsWoDuplicates.length > 10) {
-        //Calc the count of pages
+      let data = {
+        countItems: allProducts.length,
+        items: allProducts,
+      };
 
-        Number.isInteger(productsWoDuplicates.length / 10)
-          ? (countPages = productsWoDuplicates.length / 10)
-          : (countPages = Math.trunc(productsWoDuplicates.length / 10) + 1);
+      paging(req, res, data);
+    } catch (error) {
+      res.status(500).send({ message: error.message });
+    }
+  },
 
-        if (req.query.page) {
-          //Calc the previous page
-          req.query.page > 1
-            ? (prevPage = "api/product/?page=" + (Number(req.query.page) - 1))
-            : null;
+  salesFinder: async (req, res) => {
+    try {
+      const search = req.query.search;
+      let salesFound = await Sale.findAll({
+        include: { all: true },
+        where: {
+          [Op.or]: [
+            { name: { [Op.like]: "%" + search + "%" } },
+            { discount: { [Op.like]: "%" + search + "%" } },
+          ],
+          active: true,
+        },
+      });
 
-          //Calc the next page
-          req.query.page < countPages
-            ? (nextPage = "api/product/?page=" + (Number(req.query.page) + 1))
-            : null;
+      salesFound = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15]
 
-          productToSend = productsWoDuplicates.slice(
-            (req.query.page - 1) * 10,
-            req.query.page * 10
-          );
-        } else {
-          nextPage = "api/product/?page=2";
-          productToSend = productsWoDuplicates.slice(0, 10);
-        }
-      }
-      res.status(200).json(
-        Object({
-          info: {
-            count: productsWoDuplicates.length,
-            pages: countPages,
-            prev: prevPage,
-            next: nextPage,
-          },
-          products: productToSend,
-        })
-      );
+      let data = {
+        countItems: salesFound.length,
+        items: salesFound,
+      };
+
+      paging(req, res, data)
     } catch (error) {
       res.status(500).send({ message: error.message });
     }
