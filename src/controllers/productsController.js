@@ -4,19 +4,59 @@ const { finder } = require("./finderController");
 const productController = {
   allProducts: async (req, res) => {
     try {
+      //Looking for products by search
       if (req.query.search) {
         finder(req, res);
-      } else {
+      }
+      // Find all products
+      else {
         //Create the offset
         const pageOffset = req.query.page ? (req.query.page - 1) * 10 : 0;
 
         // Find the products
-        const allProducts = await Product.findAll({
+        let { count, rows } = await Product.findAndCountAll({
           include: { all: true },
           limit: 10,
           offset: pageOffset,
         });
-        res.status(200).json(allProducts);
+
+        let prevPage;
+        let nextPage;
+        let countPages;
+
+        if (count > 10) {
+          Number.isInteger(count / 10)
+            ? (countPages = count / 10)
+            : (countPages = Math.trunc(count / 10) + 1);
+
+          if (req.query.page) {
+            req.query.page > 1
+              ? (prevPage = "api/product/?page=" + (Number(req.query.page) - 1))
+              : (prevPage = null);
+
+            req.query.page < countPages
+              ? (nextPage = "api/product/?page=" + (Number(req.query.page) + 1))
+              : (nextPage = null);
+          } else {
+            prevPage = null;
+            nextPage = "api/product/?page=2";
+          }
+        } else {
+          prevPage = nextPage = null;
+          countPages = 1;
+        }
+
+        res.status(200).json(
+          Object({
+            info: {
+              count: count,
+              pages: countPages,
+              prev: prevPage,
+              next: nextPage,
+            },
+            products: rows,
+          })
+        );
       }
     } catch (error) {
       res.status(500).send({ message: error.message });

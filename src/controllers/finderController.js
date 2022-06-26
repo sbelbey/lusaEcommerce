@@ -82,20 +82,50 @@ module.exports = {
         });
       });
 
+      let countPages = 1;
+      let nextPage = null;
+      let prevPage = null;
+      let productToSend = productsWoDuplicates;
+
       // Paging the results
       if (productsWoDuplicates.length > 10) {
-        req.query.page
-          ? res.status(200).json({
-              products: productsWoDuplicates.slice(
-                (req.query.page - 1) * 10,
-                req.query.page * 10
-              ),
-            })
-          : res
-              .status(200)
-              .json({ products: productsWoDuplicates.slice(0, 10) });
+        //Calc the count of pages
+
+        Number.isInteger(productsWoDuplicates.length / 10)
+          ? (countPages = productsWoDuplicates.length / 10)
+          : (countPages = Math.trunc(productsWoDuplicates.length / 10) + 1);
+
+        if (req.query.page) {
+          //Calc the previous page
+          req.query.page > 1
+            ? (prevPage = "api/product/?page=" + (Number(req.query.page) - 1))
+            : null;
+
+          //Calc the next page
+          req.query.page < countPages
+            ? (nextPage = "api/product/?page=" + (Number(req.query.page) + 1))
+            : null;
+
+          productToSend = productsWoDuplicates.slice(
+            (req.query.page - 1) * 10,
+            req.query.page * 10
+          );
+        } else {
+          nextPage = "api/product/?page=2";
+          productToSend = productsWoDuplicates.slice(0, 10);
+        }
       }
-      res.status(200).json(productsWoDuplicates);
+      res.status(200).json(
+        Object({
+          info: {
+            count: productsWoDuplicates.length,
+            pages: countPages,
+            prev: prevPage,
+            next: nextPage,
+          },
+          products: productToSend,
+        })
+      );
     } catch (error) {
       res.status(500).send({ message: error.message });
     }
