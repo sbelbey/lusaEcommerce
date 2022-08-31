@@ -1,7 +1,7 @@
 module.exports = {
-  paging: async (req, res, data) => {
-    let prevPage = nextPage = null;
-    let countPages = currentPage = 1;
+  paging: async (req, res, data, pagUser) => {
+    let prevPage = (nextPage = null);
+    let countPages = (currentPage = 1);
     let { countItems, items } = data;
 
     if (countItems > 10) {
@@ -15,17 +15,17 @@ module.exports = {
           currentPage > 1 ? (prevPage = currentPage - 1) : null;
 
           currentPage > 1
-            ? (prevPage = "api/product/?page=" + (currentPage - 1))
+            ? (prevPage = "api/" + pagUser + "/?page=" + (currentPage - 1))
             : null;
 
           currentPage < countPages
-            ? (nextPage = "api/product/?page=" + (currentPage + 1))
+            ? (nextPage = "api/" + pagUser + "/?page=" + (currentPage + 1))
             : null;
         } else {
           res.status(404).json({ error: "There is nothing here." });
         }
       } else {
-        nextPage = "api/product/?page=2";
+        nextPage = "api/" + pagUser + "/?page=2";
       }
     }
 

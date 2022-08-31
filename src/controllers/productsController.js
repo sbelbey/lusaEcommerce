@@ -26,7 +26,7 @@ const productController = {
           items: rows,
         };
 
-        paging(req, res, data);
+        paging(req, res, data, "product");
       }
     } catch (error) {
       res.status(500).send({ message: error.message });
@@ -167,7 +167,7 @@ const productController = {
         ? productById.destroy()
         : res.status(404).json({ message: "Product does not exist" });
 
-      res.status(200).json({ message: "Product deleted successfully" });
+      res.status(200).json({ message: "Product was deleted successfully" });
     } catch (error) {
       res.status(500).send({ message: error.message });
     }

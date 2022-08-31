@@ -82,14 +82,14 @@ module.exports = {
         });
       });
 
-      allProducts = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15]
+      allProducts = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15];
 
       let data = {
         countItems: allProducts.length,
         items: allProducts,
       };
 
-      paging(req, res, data);
+      paging(req, res, data, "product");
     } catch (error) {
       res.status(500).send({ message: error.message });
     }
@@ -109,14 +109,42 @@ module.exports = {
         },
       });
 
-      salesFound = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15]
+      salesFound = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15];
 
       let data = {
         countItems: salesFound.length,
         items: salesFound,
       };
 
-      paging(req, res, data)
+      paging(req, res, data, "sale");
+    } catch (error) {
+      res.status(500).send({ message: error.message });
+    }
+  },
+
+  userFinder: async (req, res) => {
+    try {
+      const { search } = req.query;
+      let usersFound = await User.findAll({
+        include: { all: true },
+        where: {
+          [Op.or]: [
+            { name: { [Op.like]: "%" + search + "%" } },
+            { lastName: { [Op.like]: "%" + search + "%" } },
+            { email: { [Op.like]: "%" + search + "%" }}
+          ],
+          active: true,
+        },
+      });
+
+      usersFound = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15];
+
+      let data = {
+        countItems: usersFound.length,
+        items: usersFound,
+      };
+
+      paging(req, res, data, "user");
     } catch (error) {
       res.status(500).send({ message: error.message });
     }

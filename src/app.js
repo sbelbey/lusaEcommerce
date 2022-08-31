@@ -10,7 +10,7 @@ app.set("port", process.env.PORT || port);
 
 app.use(
   session({
-    secret: "Lusa Ecommerce",
+    secret: "Lusa e-Commerce",
     resave: false,
     saveUninitialized: false,
   })

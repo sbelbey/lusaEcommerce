@@ -23,10 +23,70 @@ module.exports = {
           items: rows,
         };
 
-        paging(req, res, data);
+        paging(req, res, data, "sale");
       }
     } catch (error) {
       res.status(500).send({ message: error.message });
     }
   },
+
+  storageSale: async (req, res) => {
+    try {
+      //Create the sales
+      const newSales = await Sale.create({
+        discount: Number(req.body.discount),
+        name: req.body.name,
+        active: req.body.active,
+        created_by: req.body.userId,
+      });
+
+      res.status(200).json(newSales);
+    } catch (error) {
+      res.status(500).send({ message: error.message });
+    }
+  },
+
+  getSale: async (req, res) => {
+    try {
+      const saleId = req.params.id;
+
+      const foundSales = await Sale.findByPk(saleId, {
+        include: { all: true },
+      });
+
+      res.status(200).json(foundSales);
+    } catch (error) {
+      res.status(500).send({ message: error.message });
+    }
+  },
+
+  updateSale: async (req, res) => {
+    try {
+      const saleId = req.params.id;
+      const saleById = await Sale.findByPk(saleId)
+      const saleModificated = await saleById.update({
+        discount: Number(req.body.discount),
+        name: req.body.name,
+        active: req.body.active,
+        modified_by: req.body.userId,
+      })
+
+      res.status(200).json(saleModificated);
+    } catch (error) {
+      res.status(500).send({message: error.message})
+    }
+  },
+
+  eraseSale: async (req, res) => {
+    try {
+      const saleId = req.params.id;
+      const saleById = await Sale.findByPk(saleId);
+
+      saleById ? saleById.destroy() : res.status(404).json({message: "The sale does not exist."});
+
+      res.status(200).json({message: "The sale was deleted successfully."})
+    } catch (error) {
+      res.status(500).send({message: error.message})
+    }
+  }
 };
